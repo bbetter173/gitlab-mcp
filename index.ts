@@ -93,6 +93,8 @@ import {
   // Discussion Types
   type GitLabDiscussionNote, // Added
   type GitLabDiscussion,
+  GitLabSearchBlobResponseSchema,
+  SearchBlobsSchema,
 } from "./schemas.js";
 
 /**
@@ -1507,6 +1509,65 @@ async function listGroupProjects(
   return GitLabProjectSchema.array().parse(projects);
 }
 
+/**
+ * Search for blobs in a GitLab project
+ * 프로젝트 내 파일 내용 검색
+ *
+ * @param {string} projectId - The ID or URL-encoded path of the project
+ * @param {string} search - The search query
+ * @param {Object} options - Search options
+ * @param {string} [options.filename] - Filter by filename pattern
+ * @param {string} [options.path] - Filter by path pattern
+ * @param {string} [options.extension] - Filter by file extension
+ * @param {number} [options.page=1] - Page number for pagination
+ * @param {number} [options.per_page=20] - Number of items per page
+ * @returns {Promise<GitLabSearchBlobResponse>} The search results
+ */
+async function searchBlobs(
+  projectId: string,
+  search: string,
+  options: {
+    filename?: string;
+    path?: string;
+    extension?: string;
+    page?: number;
+    per_page?: number;
+  } = {}
+): Promise<GitLabSearchBlobResponse> {
+  const url = new URL(
+    `${GITLAB_API_URL}/projects/${encodeURIComponent(projectId)}/search`
+  );
+
+  // Add required parameters
+  url.searchParams.append("scope", "blobs");
+  url.searchParams.append("search", search);
+
+  // Add optional parameters
+  if (options.filename) {
+    url.searchParams.append("filename", options.filename);
+  }
+  if (options.path) {
+    url.searchParams.append("path", options.path);
+  }
+  if (options.extension) {
+    url.searchParams.append("extension", options.extension);
+  }
+  if (options.page) {
+    url.searchParams.append("page", options.page.toString());
+  }
+  if (options.per_page) {
+    url.searchParams.append("per_page", options.per_page.toString());
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: DEFAULT_HEADERS,
+  });
+
+  await handleGitLabError(response);
+  const data = await response.json();
+  return GitLabSearchBlobResponseSchema.parse(data);
+}
+
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -1682,6 +1743,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "list_group_projects",
         description: "List projects in a GitLab group with filtering options",
         inputSchema: zodToJsonSchema(ListGroupProjectsSchema),
+      },
+      {
+        name: "search_blobs",
+        description: "Search for blobs (files) in a GitLab project",
+        inputSchema: zodToJsonSchema(SearchBlobsSchema),
       },
     ],
   };
@@ -2099,6 +2165,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const projects = await listGroupProjects(args);
         return {
           content: [{ type: "text", text: JSON.stringify(projects, null, 2) }],
+        };
+      }
+
+      case "search_blobs": {
+        const args = SearchBlobsSchema.parse(request.params.arguments);
+        const { project_id, search, ...options } = args;
+        const results = await searchBlobs(project_id, search, options);
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
         };
       }
 

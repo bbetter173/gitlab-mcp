@@ -756,6 +756,36 @@ export const ListGroupProjectsSchema = z.object({
   with_security_reports: z.boolean().optional().describe("Include security reports")
 });
 
+// GitLab Search API schemas
+export const GitLabSearchBlobSchema = z.object({
+  basename: z.string(),
+  data: z.string(),
+  path: z.string(),
+  filename: z.string(),
+  id: z.string().nullable(),
+  ref: z.string(),
+  startline: z.number(),
+  project_id: z.number(),
+  group_id: z.number().optional(),
+});
+
+export const GitLabSearchBlobResponseSchema = z.object({
+  count: z.number().optional(),
+  total_pages: z.number().optional(),
+  current_page: z.number().optional(),
+  items: z.array(GitLabSearchBlobSchema),
+});
+
+export const SearchBlobsSchema = z.object({
+  project_id: z.string().describe("Project ID or URL-encoded path"),
+  search: z.string().describe("Search query"),
+  filename: z.string().optional().describe("Filter by filename pattern"),
+  path: z.string().optional().describe("Filter by path pattern"),
+  extension: z.string().optional().describe("Filter by file extension"),
+  page: z.number().optional().describe("Page number for pagination"),
+  per_page: z.number().optional().describe("Number of items per page"),
+});
+
 // Export types
 export type GitLabAuthor = z.infer<typeof GitLabAuthorSchema>;
 export type GitLabFork = z.infer<typeof GitLabForkSchema>;
@@ -783,3 +813,5 @@ export type GitLabNamespace = z.infer<typeof GitLabNamespaceSchema>;
 export type GitLabNamespaceExistsResponse = z.infer<typeof GitLabNamespaceExistsResponseSchema>;
 export type GitLabProject = z.infer<typeof GitLabProjectSchema>;
 export type GitLabLabel = z.infer<typeof GitLabLabelSchema>;
+export type GitLabSearchBlob = z.infer<typeof GitLabSearchBlobSchema>;
+export type GitLabSearchBlobResponse = z.infer<typeof GitLabSearchBlobResponseSchema>;
