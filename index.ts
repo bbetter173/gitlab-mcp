@@ -95,6 +95,7 @@ import {
   type GitLabDiscussion,
   GitLabSearchBlobResponseSchema,
   SearchBlobsSchema,
+  type GitLabSearchBlobResponse,
 } from "./schemas.js";
 
 /**
